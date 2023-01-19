@@ -41,9 +41,8 @@ const Image = styled.div`
   border-radius: 7px;
 `;
 const Movie=()=> {
-  
-  const {id} = useParams();
-  console.log(id);  
+  //local only field : isLiked @client
+  const {id} = useParams();  
   const GET_MOVIE = gql`
     query getMovie($movieId:String!){
       movie(id:$movieId){
@@ -51,19 +50,37 @@ const Movie=()=> {
         title        
         medium_cover_image
         rating
+        isLiked @client
       }      
     }
   `
-  const {data,loading} = useQuery(GET_MOVIE,{
+  const {data,loading, client : {cache}} = useQuery(GET_MOVIE,{
     variables:{
       movieId : id
     }
   });  
+
+  const onClick=()=>{
+    //데이터는 cache에 저장 
+    // writeFragment 이용하여 수정
+    cache.writeFragment({
+      id:`Movie:${id}`,
+      fragment : gql`
+        fragment MovieFragment on Movie {          
+          isLiked
+        }
+      `,
+      data : {        
+        isLiked : !data.movie.isLiked
+      }
+    })
+  }
   return (
     <Container>
       <Column>
         <Title>{loading ? "Loading..." : `${data.movie?.title}`}</Title>
         <Subtitle>⭐️ {data?.movie?.rating}</Subtitle>
+        <button onClick={onClick}>{data?.movie?.isLiked ? "Unlike" : "Like"}</button>
       </Column>
       <Image bg={data?.movie?.medium_cover_image} />
     </Container>
